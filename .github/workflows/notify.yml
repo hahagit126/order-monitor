@@ -9,7 +9,7 @@ jobs:
   check:
     runs-on: ubuntu-latest
     env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true    # ← 加这一行
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - name: 恢复缓存
         uses: actions/cache/restore@v4
@@ -20,9 +20,9 @@ jobs:
 
       - name: 检查新订单并推送钉钉
         env:
-          SB_URL: ${{ secrets.SB_URL }}
-          SB_KEY: ${{ secrets.SB_KEY }}
-          DING: ${{ secrets.DING }}
+          SB_URL: https://mgygehqpdvhlidlcxkcp.supabase.co
+          SB_KEY: ***
+          DING: https://oapi.dingtalk.com/robot/send?access_token=20a16d8507910591bec4bc36bd45acd955892a5a68fecb09843ad9e1b2c60d08
         run: |
           python3 << 'PYEOF'
           import json, os, time, urllib.request, sys
