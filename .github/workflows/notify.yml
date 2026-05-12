@@ -8,13 +8,11 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
     permissions:
       contents: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Check and notify
         env:
@@ -22,17 +20,14 @@ jobs:
           SB_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1neWdlaHFwZHZobGlkbGN4a2NwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1Njg3NzQsImV4cCI6MjA5NDE0NDc3NH0.CryPgSBZFrfEl8ZuxB7VPOiKx0UlIE00L6xRHV0KJ4k
           DING: https://oapi.dingtalk.com/robot/send?access_token=e16b0d3a7893c2e3181f12a8817128405d8da84901dedd215ab02c769e62968b
         run: |
-          # 读取上次记录的订单数
           LAST=0
           [ -f state/count.txt ] && LAST=$(cat state/count.txt)
 
-          # 查 Supabase
           RESP=$(curl -s \
             -H "apikey: $SB_KEY" \
             -H "Authorization: Bearer $SB_KEY" \
             "$SB_URL/rest/v1/app_data?id=eq.main&select=content")
 
-          # 当前订单数
           CURR=$(echo "$RESP" | python3 -c "
           import sys,json
           try:
@@ -44,7 +39,6 @@ jobs:
 
           echo "last=$LAST curr=$CURR"
 
-          # 有新订单就推钉钉
           if [ "$CURR" -gt "$LAST" ] && [ "$LAST" -gt 0 ]; then
             MSG=$(echo "$RESP" | python3 -c "
           import sys,json
@@ -64,7 +58,6 @@ jobs:
           print('\n'.join(lines))
           ")
 
-            # 发钉钉
             curl -s -X POST "$DING" \
               -H 'Content-Type: application/json' \
               -d "{\"msgtype\":\"markdown\",\"markdown\":{\"title\":\"新订单\",\"text\":\"$MSG\"}}"
@@ -74,7 +67,6 @@ jobs:
             echo "no new orders"
           fi
 
-          # 保存当前数量
           mkdir -p state
           echo "$CURR" > state/count.txt
 
