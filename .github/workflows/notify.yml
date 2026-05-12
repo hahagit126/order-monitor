@@ -2,12 +2,14 @@ name: 订单实时监控
 
 on:
   schedule:
-    - cron: '* * * * *'       # 每分钟检查一次
+    - cron: '* * * * *'
   workflow_dispatch:
 
 jobs:
   check:
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true    # ← 加这一行
     steps:
       - name: 恢复缓存
         uses: actions/cache/restore@v4
@@ -28,14 +30,12 @@ jobs:
           seen_file = ".state/seen.json"
           os.makedirs(".state", exist_ok=True)
 
-          # 加载已通知过的订单ID
           try:
               with open(seen_file) as f:
                   seen = set(json.load(f))
           except Exception:
               seen = set()
 
-          # 拉取订单
           url = f"{os.environ['SB_URL']}/rest/v1/app_data?id=eq.main&select=content"
           req = urllib.request.Request(url, headers={
               "apikey": os.environ["SB_KEY"],
@@ -44,7 +44,6 @@ jobs:
           data = json.loads(urllib.request.urlopen(req).read())
           orders = data[0]["content"]["orders"]
 
-          # 3分钟窗口 + ID去重，确保不漏不重
           cutoff = int(time.time() * 1000) - 180000
           fresh = [o for o in orders
                    if o.get("ts", 0) > cutoff
@@ -54,7 +53,6 @@ jobs:
               print("没有新订单")
               sys.exit(0)
 
-          # 组装钉钉消息
           lines = ["## 🧸 新订单来了"]
           new_ids = []
           for o in fresh:
@@ -71,7 +69,6 @@ jobs:
 
           msg = "\n".join(lines)
 
-          # 推送钉钉
           body = json.dumps({
               "msgtype": "markdown",
               "markdown": {"title": "新订单来了", "text": msg}
@@ -83,7 +80,6 @@ jobs:
           ))
           print(f"已推送 {len(fresh)} 个新订单")
 
-          # 记录已通知ID，只保留最近500条防膨胀
           updated = list(seen | set(new_ids))[-500:]
           with open(seen_file, "w") as f:
               json.dump(updated, f)
