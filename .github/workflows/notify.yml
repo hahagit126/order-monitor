@@ -18,23 +18,21 @@ jobs:
         env:
           SB_URL: https://mgygehqpdvhlidlcxkcp.supabase.co
           SB_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1neWdlaHFwZHZobGlkbGN4a2NwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1Njg3NzQsImV4cCI6MjA5NDE0NDc3NH0.CryPgSBZFrfEl8ZuxB7VPOiKx0UlIE00L6xRHV0KJ4k
-          DING: https://oapi.dingtalk.com/robot/send?access_token=e16b0d3a7893c2e3181f12a8817128405d8da84901dedd215ab02c769e62968b
+          DING: https://oapi.dingtalk.com/robot/send?access_token=20a16d8507910591bec4bc36bd45acd955892a5a68fecb09843ad9e1b2c60d08
         run: |
-          # ====== 第一步：测试钉钉能否收到 ======
+          # 测试钉钉
           echo ">>> 测试钉钉连接..."
           TEST_RESP=$(curl -s -X POST "$DING" \
             -H 'Content-Type: application/json' \
             -d '{"msgtype":"text","text":{"content":"新订单 - 连接测试成功！"}}')
           echo "钉钉返回: $TEST_RESP"
 
-          # ====== 第二步：读取上次订单数 ======
+          # 读取上次订单数
           LAST=0
-          if [ -f state/count.txt ]; then
-            LAST=$(cat state/count.txt)
-          fi
+          [ -f state/count.txt ] && LAST=$(cat state/count.txt)
           echo "上次订单数: $LAST"
 
-          # ====== 第三步：查 Supabase ======
+          # 查 Supabase
           RESP=$(curl -s \
             -H "apikey: $SB_KEY" \
             -H "Authorization: Bearer $SB_KEY" \
@@ -45,16 +43,14 @@ jobs:
           try:
               d=json.load(sys.stdin)
               print(len(d[0]['content']['orders']))
-          except Exception as e:
-              print('ERR:'+str(e),file=sys.stderr)
+          except:
               print(0)
           ")
-
           echo "当前订单数: $CURR"
 
-          # ====== 第四步：有新订单就推送 ======
+          # 有新订单就推
           if [ "$CURR" -gt "$LAST" ] && [ "$LAST" -gt 0 ]; then
-            echo "发现新订单！发送通知..."
+            echo "发现新订单！"
             MSG=$(echo "$RESP" | python3 -c "
           import sys,json
           d=json.load(sys.stdin)
@@ -72,21 +68,19 @@ jobs:
               lines.append('**💰 合计 ¥'+str(round(o.get('total',0),1))+'**')
           print('\n'.join(lines))
           ")
-
             DING_RESP=$(curl -s -X POST "$DING" \
               -H 'Content-Type: application/json' \
               -d "{\"msgtype\":\"markdown\",\"markdown\":{\"title\":\"新订单来了\",\"text\":\"$MSG\"}}")
             echo "钉钉通知返回: $DING_RESP"
           elif [ "$LAST" -eq 0 ]; then
-            echo "首次运行，只记录订单数，不发通知"
+            echo "首次运行，记录订单数"
           else
             echo "没有新订单"
           fi
 
-          # ====== 第五步：保存当前订单数 ======
           mkdir -p state
           echo "$CURR" > state/count.txt
-          echo "已保存订单数: $CURR"
+          echo "已保存: $CURR"
 
       - name: Save state
         run: |
@@ -94,5 +88,5 @@ jobs:
             git config user.name "bot"
             git config user.email "bot@bot.com"
             git add state/count.txt
-            git diff --cached --quiet && echo "无变化，跳过提交" || (git commit -m "update count $(cat state/count.txt)" && git push)
+            git diff --cached --quiet && echo "无变化" || (git commit -m "update count $(cat state/count.txt)" && git push)
           fi
