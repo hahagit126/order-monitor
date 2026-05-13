@@ -8,7 +8,7 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - name: Run
+      - name: 自动检测新订单
         run: |
           mkdir -p .state
           LAST=0
@@ -16,20 +16,26 @@ jobs:
             LAST=$(cat .state/count)
           fi
 
-          curl -s -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1neWdlaHFwZHZobGlkbGN4a2NwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1Njg3NzQsImV4cCI6MjA0NDE0NDc3NH0.CryPgSBZFrfEl8ZuxB7VPOiKx0UlIE00L6xRHV0KJ4k" \
+          # 下载数据
+          curl -s \
+            -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1neWdlaHFwZHZobGlkbGN4a2NwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1Njg3NzQsImV4cCI6MjA0NDE0NDc3NH0.CryPgSBZFrfEl8ZuxB7VPOiKx0UlIE00L6xRHV0KJ4k" \
             -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1neWdlaHFwZHZobGlkbGN4a2NwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1Njg3NzQsImV4cCI6MjA0NDE0NDc3NH0.CryPgSBZFrfEl8ZuxB7VPOiKx0UlIE00L6xRHV0KJ4k" \
             "https://mgygehqpdvhlidlcxkcp.supabase.co/rest/v1/app?id=eq.main&select=content" > data.json
 
-          CURR=$(grep -o '"orders"\s*:\s*\[[^]]*]' data.json | grep -o "\{" | wc -l)
+          # 正确读取订单数量（修复版！）
+          CURR=$(python3 -c "import json; d=json.load(open('data.json')); print(len(d['content']['orders']))")
 
-          echo "上一次：$LAST"
-          echo "当前：$CURR"
+          echo "上一次订单数：$LAST"
+          echo "当前订单数：$CURR"
 
-          if [ "$CURR" -gt "$LAST" ]; then
+          # 有新订单 → 发钉钉
+          if [ $CURR -gt $LAST ]; then
             curl -s -X POST "https://oapi.dingtalk.com/robot/send?access_token=98770c077ec73b6db9973aa2810e0342e49c8c3df5dfc9197caea9dc6316eba8" \
               -H "Content-Type: application/json" \
-              -d '{"msgtype":"text","text":{"content":"🧸 有新订单！"}}'
-            echo "✅ 发送成功"
+              -d '{"msgtype":"text","text":{"content":"🧸 一二布布小铺：有新订单啦！"}}'
+            echo "✅ 钉钉已发送！"
+          else
+            echo "✅ 暂无新订单"
           fi
 
-          echo "$CURR" > .state/count
+          echo $CURR > .state/count
