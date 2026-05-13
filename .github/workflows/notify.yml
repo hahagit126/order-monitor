@@ -16,20 +16,27 @@ jobs:
             LAST=$(cat .state/count)
           fi
 
-          # 下载数据
           curl -s \
             -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1neWdlaHFwZHZobGlkbGN4a2NwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1Njg3NzQsImV4cCI6MjA0NDE0NDc3NH0.CryPgSBZFrfEl8ZuxB7VPOiKx0UlIE00L6xRHV0KJ4k" \
             -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1neWdlaHFwZHZobGlkbGN4a2NwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1Njg3NzQsImV4cCI6MjA0NDE0NDc3NH0.CryPgSBZFrfEl8ZuxB7VPOiKx0UlIE00L6xRHV0KJ4k" \
             "https://mgygehqpdvhlidlcxkcp.supabase.co/rest/v1/app?id=eq.main&select=content" > data.json
 
-          # 正确读取订单数量（修复版！）
-          CURR=$(python3 -c "import json; d=json.load(open('data.json')); print(len(d['content']['orders']))")
+          CURR=$(python3 -c "
+import json
+try:
+    d = json.load(open('data.json'))
+    if isinstance(d, list):
+        d = d[0] if d else {}
+    cnt = len(d.get('content', {}).get('orders', []))
+except:
+    cnt = 0
+print(cnt)
+          ")
 
           echo "上一次订单数：$LAST"
           echo "当前订单数：$CURR"
 
-          # 有新订单 → 发钉钉
-          if [ $CURR -gt $LAST ]; then
+          if [ "$CURR" -gt "$LAST" ]; then
             curl -s -X POST "https://oapi.dingtalk.com/robot/send?access_token=98770c077ec73b6db9973aa2810e0342e49c8c3df5dfc9197caea9dc6316eba8" \
               -H "Content-Type: application/json" \
               -d '{"msgtype":"text","text":{"content":"🧸 一二布布小铺：有新订单啦！"}}'
@@ -38,4 +45,4 @@ jobs:
             echo "✅ 暂无新订单"
           fi
 
-          echo $CURR > .state/count
+          echo "$CURR" > .state/count
