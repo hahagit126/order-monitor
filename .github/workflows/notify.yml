@@ -13,14 +13,14 @@ jobs:
         uses: actions/cache/restore@v5
         with:
           path: .state
-          key: order-count-${{ github.run_id }}
+          key: order-count-fixed
           restore-keys: order-count-
 
       - name: Check and push
         env:
           SB_URL: https://mgygehqpdvhlidlcxkcp.supabase.co
           SB_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1neWdlaHFwZHZobGlkbGN4a2NwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1Njg3NzQsImV4cCI6MjA5NDE0NDc3NH0.CryPgSBZFrfEl8ZuxB7VPOiKx0UlIE00L6xRHV0KJ4k
-          DING_TOKEN: https://oapi.dingtalk.com/robot/send?access_token=98770c077ec73b6db9973aa2810e0342e49c8c3df5dfc9197caea9dc6316eba8 
+          DING_TOKEN: httpsoapi.dingtalk.comrobotsend?access_token=98770c077ec73b6db9973aa2810e0342e49c8c3df5dfc9197caea9dc6316eba8
         run: |
           mkdir -p .state
           LAST=0
@@ -42,11 +42,11 @@ jobs:
 
           echo "last=$LAST curr=$CURR"
 
-          if [ "$CURR" -gt "$LAST" ] && [ "$LAST" -gt 0 ]; then
-            MSG="新订单：检测到新订单"
-            curl -s -X POST "https://oapi.dingtalk.com/robot/send?access_token=$DING_TOKEN" \
+          if [ "$CURR" -gt "$LAST" ]; then
+            MSG="🧸 一二布布小铺：有新订单！当前订单总数：$CURR"
+            curl -s -X POST "https://oapi.dingtalk.com/robot/send?access_token=98770c077ec73b6db9973aa2810e0342e49c8c3df5dfc9197caea9dc6316eba8" \
               -H "Content-Type: application/json" \
-              -d '{"msgtype":"text","text":{"content":"'$MSG'"}}'
+              -d "{\"msgtype\":\"text\",\"text\":{\"content\":\"$MSG\"}}"
             echo "✅ 钉钉推送成功"
           else
             echo "no new orders"
@@ -59,4 +59,4 @@ jobs:
         if: always()
         with:
           path: .state
-          key: order-count-${{ github.run_id }}
+          key: order-count-fixed
