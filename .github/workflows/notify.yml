@@ -38,7 +38,7 @@ print(len(orders))
           echo "上一次订单数: $LAST"
           echo "当前订单数: $CURR"
 
-          if [ $CURR -gt $LAST ]; then
+          if [ "$CURR" -gt "$LAST" ]; then
             curl -s -X POST "$DING_TOKEN" \
               -H "Content-Type: application/json" \
               -d '{"msgtype":"text","text":{"content":"🧸 一二布布小铺：有新订单啦！"}}'
@@ -47,4 +47,4 @@ print(len(orders))
             echo "✅ 暂无新订单"
           fi
 
-          echo $CURR > .state/count
+          echo "$CURR" > .state/count
