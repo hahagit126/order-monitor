@@ -20,7 +20,7 @@ jobs:
         env:
           SB_URL: https://mgygehqpdvhlidlcxkcp.supabase.co
           SB_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1neWdlaHFwZHZobGlkbGN4a2NwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1Njg3NzQsImV4cCI6MjA5NDE0NDc3NH0.CryPgSBZFrfEl8ZuxB7VPOiKx0UlIE00L6xRHV0KJ4k
-          DING_TOKEN: e16b0d3a7893c2e3181812a8817128405d8da84901dedd215ab02c769e62968b
+          DING_TOKEN: https://oapi.dingtalk.com/robot/send?access_token=98770c077ec73b6db9973aa2810e0342e49c8c3df5dfc9197caea9dc6316eba8 
         run: |
           mkdir -p .state
           LAST=0
@@ -43,19 +43,11 @@ jobs:
           echo "last=$LAST curr=$CURR"
 
           if [ "$CURR" -gt "$LAST" ] && [ "$LAST" -gt 0 ]; then
-
-            # 极简消息 → 必过钉钉校验
-            MSG="新订单：检测到新订单，订单序号 $LAST → $CURR"
-
-            # 最标准钉钉发送格式（无转义、无特殊字符）
-            curl -s "https://oapi.dingtalk.com/robot/send?access_token=$DING_TOKEN" \
+            MSG="新订单：检测到新订单"
+            curl -s -X POST "https://oapi.dingtalk.com/robot/send?access_token=$DING_TOKEN" \
               -H "Content-Type: application/json" \
-              -d "{
-                \"msgtype\": \"text\",
-                \"text\": {\"content\": \"$MSG\"}
-              }"
-
-            echo "✅ 新订单已推送钉钉"
+              -d '{"msgtype":"text","text":{"content":"'$MSG'"}}'
+            echo "✅ 钉钉推送成功"
           else
             echo "no new orders"
           fi
