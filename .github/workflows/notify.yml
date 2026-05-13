@@ -8,18 +8,10 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - name: Check
+      - name: Auto Send
         run: |
           mkdir -p .state
-          LAST=0
-          if [ -f .state/count ]; then
-            LAST=$(cat .state/count)
-          fi
-
-          # 固定写死：每次运行都认为有新订单，直接发钉钉
           curl -s -X POST "https://oapi.dingtalk.com/robot/send?access_token=98770c077ec73b6db9973aa2810e0342e49c8c3df5dfc9197caea9dc6316eba8" \
             -H "Content-Type: application/json" \
             -d '{"msgtype":"text","text":{"content":"🧸 一二布布小铺：有新订单啦！"}}'
-
-          echo "✅ 钉钉已发送！"
-          echo "1" > .state/count
+          echo "✅ 发送成功"
