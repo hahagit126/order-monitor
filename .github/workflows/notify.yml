@@ -1,17 +1,18 @@
 name: Order Notify
+
 on:
-  schedule:
-    - cron: '*/2 * * * *'
   workflow_dispatch:
+  push:
+  schedule:
+    - cron: '*/5 * * *'
 
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - name: Auto Send
+      - name: Send Message
         run: |
-          mkdir -p .state
           curl -s -X POST "https://oapi.dingtalk.com/robot/send?access_token=98770c077ec73b6db9973aa2810e0342e49c8c3df5dfc9197caea9dc6316eba8" \
             -H "Content-Type: application/json" \
             -d '{"msgtype":"text","text":{"content":"🧸 一二布布小铺：有新订单啦！"}}'
-          echo "✅ 发送成功"
+          echo "✅ 自动发送成功"
