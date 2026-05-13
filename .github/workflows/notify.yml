@@ -16,42 +16,78 @@ jobs:
           key: order-count-fixed
           restore-keys: order-count-
 
-      - name: Check and push
+      - name: Check new orders and send to DingTalk
         env:
           SB_URL: https://mgygehqpdvhlidlcxkcp.supabase.co
           SB_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1neWdlaHFwZHZobGlkbGN4a2NwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1Njg3NzQsImV4cCI6MjA5NDE0NDc3NH0.CryPgSBZFrfEl8ZuxB7VPOiKx0UlIE00L6xRHV0KJ4k
-          DING_TOKEN: httpsoapi.dingtalk.comrobotsend?access_token=98770c077ec73b6db9973aa2810e0342e49c8c3df5dfc9197caea9dc6316eba8
+          DING_TOKEN: https://oapi.dingtalk.com/robot/send?access_token=98770c077ec73b6db9973aa2810e0342e49c8c3df5dfc9197caea9dc6316eba8
         run: |
           mkdir -p .state
           LAST=0
           [ -f .state/count ] && LAST=$(cat .state/count)
 
+          # 获取订单数据
           RESP=$(curl -s \
             -H "apikey: $SB_KEY" \
             -H "Authorization: Bearer $SB_KEY" \
             "$SB_URL/rest/v1/app_data?id=eq.main&select=content")
 
+          # 解析当前订单总数
           CURR=$(echo "$RESP" | python3 -c "
-          import sys,json
+          import sys, json
           try:
-              d=json.load(sys.stdin)
-              print(len(d[0]['content']['orders']))
+              data = json.load(sys.stdin)
+              orders = data[0]['content']['orders']
+              print(len(orders))
           except:
               print(0)
           ")
 
-          echo "last=$LAST curr=$CURR"
+          echo "上一次订单数: $LAST   当前订单数: $CURR"
 
+          # 有新订单 → 发送详情
           if [ "$CURR" -gt "$LAST" ]; then
-            MSG="🧸 一二布布小铺：有新订单！当前订单总数：$CURR"
-            curl -s -X POST "https://oapi.dingtalk.com/robot/send?access_token=98770c077ec73b6db9973aa2810e0342e49c8c3df5dfc9197caea9dc6316eba8" \
+            MSG=$(echo "$RESP" | python3 -c "
+            import sys, json
+            try:
+                data = json.load(sys.stdin)
+                orders = data[0]['content']['orders']
+                new_orders = orders[$LAST:$CURR]
+
+                msg = '🧸 一二布布小铺 - 新订单通知\\n'
+                msg += '━━━━━━━━━━━━━━━━━━\\n'
+
+                for o in new_orders:
+                    msg += f'📋 订单 #{o[\"id\"]}\\n'
+                    msg += f'⏰ 时间: {o[\"time\"]}\\n'
+                    msg += f'🛍️ 商品:\\n'
+                    total = 0
+                    for item in o['items']:
+                        name = item[2] if len(item) > 2 else '商品'
+                        qty = item[1]
+                        price = item[4] if len(item) > 4 else 0
+                        subtotal = qty * price
+                        total += subtotal
+                        msg += f'   • {name} ×{qty}  ¥{subtotal:.1f}\\n'
+                    msg += f'💰 合计: ¥{total:.1f}\\n'
+                    msg += '━━━━━━━━━━━━━━━━━━\\n'
+
+                print(msg)
+            except:
+                print('🧸 一二布布小铺：有新订单！订单总数：' + str($CURR))
+            ")
+
+            # 发送钉钉
+            curl -s -X POST "$DING_TOKEN" \
               -H "Content-Type: application/json" \
               -d "{\"msgtype\":\"text\",\"text\":{\"content\":\"$MSG\"}}"
-            echo "✅ 钉钉推送成功"
+
+            echo "✅ 钉钉推送成功（已发送订单详情）"
           else
-            echo "no new orders"
+            echo "✅ 暂无新订单"
           fi
 
+          # 保存最新订单数
           echo "$CURR" > .state/count
 
       - name: Save state
