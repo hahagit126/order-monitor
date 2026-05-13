@@ -16,65 +16,60 @@ jobs:
           key: order-count-fixed
           restore-keys: order-count-
 
-      - name: Check new orders and send to DingTalk
+      - name: Check new orders
         env:
           SB_URL: https://mgygehqpdvhlidlcxkcp.supabase.co
           SB_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1neWdlaHFwZHZobGlkbGN4a2NwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1Njg3NzQsImV4cCI6MjA5NDE0NDc3NH0.CryPgSBZFrfEl8ZuxB7VPOiKx0UlIE00L6xRHV0KJ4k
           DING_TOKEN: https://oapi.dingtalk.com/robot/send?access_token=98770c077ec73b6db9973aa2810e0342e49c8c3df5dfc9197caea9dc6316eba8
         run: |
+          #!/bin/bash
           mkdir -p .state
           LAST=0
           [ -f .state/count ] && LAST=$(cat .state/count)
 
-          # 获取订单数据
+          # 获取数据
           RESP=$(curl -s \
             -H "apikey: $SB_KEY" \
             -H "Authorization: Bearer $SB_KEY" \
             "$SB_URL/rest/v1/app_data?id=eq.main&select=content")
 
-          # 解析当前订单总数
+          # 获取订单总数
           CURR=$(echo "$RESP" | python3 -c "
           import sys, json
           try:
-              data = json.load(sys.stdin)
-              orders = data[0]['content']['orders']
-              print(len(orders))
+              d = json.load(sys.stdin)
+              print(len(d[0]['content']['orders']))
           except:
               print(0)
           ")
 
-          echo "上一次订单数: $LAST   当前订单数: $CURR"
+          echo "上一次：$LAST  当前：$CURR"
 
-          # 有新订单 → 发送详情
+          # 有新订单
           if [ "$CURR" -gt "$LAST" ]; then
+
+            # 生成订单消息
             MSG=$(echo "$RESP" | python3 -c "
             import sys, json
             try:
                 data = json.load(sys.stdin)
                 orders = data[0]['content']['orders']
                 new_orders = orders[$LAST:$CURR]
-
-                msg = '🧸 一二布布小铺 - 新订单通知\\n'
-                msg += '━━━━━━━━━━━━━━━━━━\\n'
-
+                msg = '\ud83e\uddf8 \u4e00\u4e8c\u5e03\u5e03\u5c0f\u94fa - \u65b0\u8ba2\u5355\n'
+                msg += '--------------------------\n'
                 for o in new_orders:
-                    msg += f'📋 订单 #{o[\"id\"]}\\n'
-                    msg += f'⏰ 时间: {o[\"time\"]}\\n'
-                    msg += f'🛍️ 商品:\\n'
-                    total = 0
-                    for item in o['items']:
-                        name = item[2] if len(item) > 2 else '商品'
-                        qty = item[1]
-                        price = item[4] if len(item) > 4 else 0
-                        subtotal = qty * price
-                        total += subtotal
-                        msg += f'   • {name} ×{qty}  ¥{subtotal:.1f}\\n'
-                    msg += f'💰 合计: ¥{total:.1f}\\n'
-                    msg += '━━━━━━━━━━━━━━━━━━\\n'
-
+                    msg += '\ud83d\udccb3 \u8ba2\u5355 #%s\n' % o['id']
+                    msg += '\u23f0 \u65f6\u95f4: %s\n' % o['time']
+                    msg += '\ud83d\udecd\ufe0f \u5546\u54c1:\n'
+                    for it in o['items']:
+                        name = it[2] if len(it) > 2 else '未知商品'
+                        qty = it[1]
+                        msg += '   • %s x%s\n' % (name, qty)
+                    msg += '\ud83d\udcb0 \u5408\u8ba1: \uffe5%s\n' % o['total']
+                    msg += '--------------------------\n'
                 print(msg)
             except:
-                print('🧸 一二布布小铺：有新订单！订单总数：' + str($CURR))
+                print('\ud83e\uddf8 \u4e00\u4e8c\u5e03\u5e03\u5c0f\u94fa\uff1a\u6709\u65b0\u8ba2\u5355')
             ")
 
             # 发送钉钉
@@ -82,12 +77,11 @@ jobs:
               -H "Content-Type: application/json" \
               -d "{\"msgtype\":\"text\",\"text\":{\"content\":\"$MSG\"}}"
 
-            echo "✅ 钉钉推送成功（已发送订单详情）"
+            echo "✅ 钉钉推送成功"
           else
             echo "✅ 暂无新订单"
           fi
 
-          # 保存最新订单数
           echo "$CURR" > .state/count
 
       - name: Save state
