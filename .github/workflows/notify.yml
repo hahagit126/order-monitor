@@ -1,38 +1,17 @@
 name: Order Notify
 
 on:
-  push:
   workflow_dispatch:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "*/2 * * * *"
 
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - name: Check new orders
+      - name: Check Order
         run: |
-          mkdir -p .state
-          LAST=0
-          [ -f .state/count ] && LAST=$(cat .state/count)
-          
-          curl -s "https://mgygehqpdvhlidlcxkcp.supabase.co/rest/v1/app?id=eq.main&select=content" \
-            -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1neWdlaHFwZHZobGlkbGN4a2NwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1Njg3NzQsImV4cCI6MjA0NDE0NDc3NH0.CryPgSBZFrfEl8ZuxB7VPOiKx0UlIE00L6xRHV0KJ4k" \
-            -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1neWdlaHFwZHZobGlkbGN4a2NwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1Njg3NzQsImV4cCI6MjA0NDE0NDc3NH0.CryPgSBZFrfEl8ZuxB7VPOiKx0UlIE00L6xRHV0KJ4k" \
-            -o data.json
-          
-          CURR=$(grep -A 20 '"orders"' data.json | grep -o "{" | wc -l)
-          
-          echo "上一次订单数：$LAST"
-          echo "当前订单数：$CURR"
-          
-          if [ "$CURR" -gt "$LAST" ]; then
-            curl -s -X POST "https://oapi.dingtalk.com/robot/send?access_token=98770c077ec73b6db9973aa2810e0342e49c8c3df5dfc9197caea9dc6316eba8" \
-              -H "Content-Type: application/json" \
-              -d '{"msgtype":"text","text":{"content":"🧸 一二布布小铺：有新订单啦！"}}'
-            echo "✅ 已发送钉钉提醒"
-          else
-            echo "✅ 暂无新订单"
-          fi
-          
-          echo "$CURR" > .state/count
+          curl -s -X POST "https://oapi.dingtalk.com/robot/send?access_token=98770c77ec73b6db9973aa2810e0342e49c8c3df5dfc9197caea9dc6316eba8" \
+            -H "Content-Type: application/json" \
+            -d '{"msgtype":"text","text":{"content":"🧸 一二布布小铺：有新订单啦！"}}'
+          echo "✅ 发送成功"
