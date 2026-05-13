@@ -9,10 +9,10 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - name: 自动检测新订单并发送钉钉
+      - name: Check order
         env:
           SB_URL: https://mgygehqpdvhlidlcxkcp.supabase.co
-          SB_KEY: eyJhbGciOiJIUzIniIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1neWdlaHFwZHZobGlkbGN4a2NwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1Njg3NzQsImV4cCI6MjA0NDE0NDc3NH0.CryPgSBZFrfEl8ZuxB7VPOiKx0UlIE00L6xRHV0KJ4k
+          SB_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1neWdlaHFwZHZobGlkbGN4a2NwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1Njg3NzQsImV4cCI6MjA0NDE0NDc3NH0.CryPgSBZFrfEl8ZuxB7VPOiKx0UlIE00L6xRHV0KJ4k
           DING_TOKEN: https://oapi.dingtalk.com/robot/send?access_token=98770c077ec73b6db9973aa2810e0342e49c8c3df5dfc9197caea9dc6316eba8
         run: |
           mkdir -p .state
@@ -28,7 +28,12 @@ jobs:
 
           echo "$RESP" > data.json
 
-          CURR=$(python3 -c "import json; d=json.load(open('data.json')); print(len(d[0]['content']['orders']))")
+          CURR=$(python3 -c "
+import json
+d = json.load(open('data.json'))
+orders = d.get('content', {}).get('orders', [])
+print(len(orders))
+          ")
 
           echo "上一次订单数: $LAST"
           echo "当前订单数: $CURR"
