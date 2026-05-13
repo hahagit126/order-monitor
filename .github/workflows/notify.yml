@@ -33,38 +33,18 @@ jobs:
 
           CURR=$(echo "$RESP" | python3 -c "import sys,json;try:d=json.load(sys.stdin);print(len(d[0]['content']['orders']));except:print(0)")
 
-          echo "last: $LAST current: $CURR"
+          echo last=$LAST curr=$CURR
 
-          if [ "$CURR" -gt "$LAST" ]; then
-            MSG=$(echo "$RESP" | python3 -c "
-import sys,json
-try:
-    data = json.load(sys.stdin)
-    orders = data[0]['content']['orders']
-    new_orders = orders[$LAST:$CURR]
-    msg = 'New Order!\n'
-    for o in new_orders:
-        msg += 'Order #%s\n' % o['id']
-        msg += 'Time: %s\n' % o['time']
-        msg += 'Items:\n'
-        for it in o['items']:
-            name = it[2] if len(it) > 2 else 'Item'
-            qty = it[1]
-            msg += '- %s x%s\n' % (name, qty)
-        msg += 'Total: %s\n' % o['total']
-    print(msg)
-except:
-    print('You have a new order')
-")
+          if [ $CURR -gt $LAST ]; then
             curl -s -X POST "$DING_TOKEN" \
               -H "Content-Type: application/json" \
-              -d "{\"msgtype\":\"text\",\"text\":{\"content\":\"$MSG\"}}"
-            echo "OK: Message sent"
+              -d '{"msgtype":"text","text":{"content":"🧸 一二布布小铺：有新订单！"}}'
+            echo "✅ 钉钉已发送"
           else
-            echo "OK: No new orders"
+            echo "✅ 无新订单"
           fi
 
-          echo "$CURR" > .state/count
+          echo $CURR > .state/count
 
       - name: Save state
         uses: actions/cache/save@v5
