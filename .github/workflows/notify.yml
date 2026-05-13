@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Restore state
-        uses: actions/cache/restore@v5  # 升级 v5 → 无 Node20 警告
+        uses: actions/cache/restore@v5
         with:
           path: .state
           key: order-count-${{ github.run_id }}
@@ -24,17 +24,14 @@ jobs:
         run: |
           mkdir -p .state
 
-          # 上次订单数
           LAST=0
           [ -f .state/count ] && LAST=$(cat .state/count)
 
-          # 查 Supabase
           RESP=$(curl -s \
             -H "apikey: $SB_KEY" \
             -H "Authorization: Bearer $SB_KEY" \
             "$SB_URL/rest/v1/app_data?id=eq.main&select=content")
 
-          # 当前订单数
           CURR=$(echo "$RESP" | python3 -c "
           import sys,json
           try:
@@ -46,7 +43,6 @@ jobs:
 
           echo "last=$LAST curr=$CURR"
 
-          # 有新订单就推送
           if [ "$CURR" -gt "$LAST" ] && [ "$LAST" -gt 0 ]; then
             MSG=$(echo "$RESP" | python3 -c "
           import sys,json
@@ -56,17 +52,16 @@ jobs:
           for o in orders:
               lines.append('---')
               lines.append('**订单 #'+str(o['id'])+'**  '+o.get('time',''))
-            for item in o.get('items',[]):
-                nm=item[2] if len(item)>2 else '?'
-                em=item[3] if len(item)>3 else '?'
-                pr=item[4] if len(item)>4 else 0
-                qt=item[1]
-                lines.append('- '+em+' '+nm+' x'+str(qt)+'  ¥'+str(round(pr*qt,1)))
+              for item in o.get('items',[]):
+                  nm=item[2] if len(item)>2 else '?'
+                  em=item[3] if len(item)>3 else '?'
+                  pr=item[4] if len(item)>4 else 0
+                  qt=item[1]
+                  lines.append('- '+em+' '+nm+' x'+str(qt)+'  ¥'+str(round(pr*qt,1)))
               lines.append('**💰 合计 ¥'+str(round(o.get('total',0),1))+'**')
           print('\n'.join(lines))
           ")
 
-            # 发钉钉
             curl -s -X POST "$DING" \
               -H 'Content-Type: application/json' \
               -d "{\"msgtype\":\"markdown\",\"markdown\":{\"title\":\"新订单\",\"text\":\"$MSG\"}}"
@@ -76,11 +71,10 @@ jobs:
             echo "no new orders"
           fi
 
-          # 存当前数量
           echo "$CURR" > .state/count
 
       - name: Save state
-        uses: actions/cache/save@v5  # 升级 v5 → 无 Node20 警告
+        uses: actions/cache/save@v5
         if: always()
         with:
           path: .state
