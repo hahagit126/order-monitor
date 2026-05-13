@@ -5,12 +5,16 @@ on:
     - cron: '*/2 * * * *'
   workflow_dispatch:
 
+# 强制使用 Node.js 24 消除警告
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
       - name: Restore state
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: .state
           key: order-count-${{ github.run_id }}
@@ -20,7 +24,7 @@ jobs:
         env:
           SB_URL: https://mgygehqpdvhlidlcxkcp.supabase.co
           SB_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1neWdlaHFwZHZobGlkbGN4a2NwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1Njg3NzQsImV4cCI6MjA5NDE0NDc3NH0.CryPgSBZFrfEl8ZuxB7VPOiKx0UlIE00L6xRHV0KJ4k
-          DING: https://oapi.dingtalk.com/robot/send?access_token=e16b0d3a7893c2e3181f12a8817128405d8da84901dedd215ab02c769e62968b
+          DING: https://oapi.dingtalk.com/robot/send?access_token=e16b0d3a7893c2e3181812a8817128405d8da84901dedd215ab02c769e62968b
         run: |
           mkdir -p .state
 
